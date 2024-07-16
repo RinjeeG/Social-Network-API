@@ -24,22 +24,19 @@ const thoughtController = {
         res.status(500).json(err);
       });
   },
-  createThought(req, res) {
-    Thought.create(req.body)
-      .then(({ _id }) => {
-        return User.findOneAndUpdate(
-          { _id: req.body.userId },
-          { $push: { thoughts: _id } },
-          { new: true }
-        );
-      })
-      .then(dbUserData => {
-        if (!dbUserData) {
-          return res.status(404).json({ message: 'No user with this id!' });
-        }
-        res.json(dbUserData);
-      })
-      .catch(err => res.status(500).json(err));
+  async createThought(req, res, next) {
+    try {
+      const thought = await Thought.create(req.body);
+      await User.findOneAndUpdate(
+        { _id: req.body.userId },
+        { $push: { thoughts: thought._id } },
+        { new: true }
+      );
+
+      res.json(thought);
+    } catch (err) {
+      next(err);
+    }
   },
   updateThought(req, res) {
     Thought.findOneAndUpdate(
@@ -56,7 +53,7 @@ const thoughtController = {
       .catch(err => res.status(500).json(err));
   },
   deleteThought(req, res) {
-    Thought.findOneAndRemove({ _id: req.params.thoughtId })
+    Thought.findOneAndDelete({ _id: req.params.thoughtId })
       .then(dbThoughtData => {
         if (!dbThoughtData) {
           return res.status(404).json({ message: 'No thought with this id!' });
